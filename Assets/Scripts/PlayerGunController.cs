@@ -53,7 +53,7 @@ public class PlayerGunController : MonoBehaviour
         Cursor.visible = false;
 
         inputMap.OnReloadGun += () => Reload();
-        inputMap.OnHoldShootPerformed += () => IsHoldShoot = true;
+        inputMap.OnHoldShootStart += () => IsHoldShoot = true;
         inputMap.OnHoldShootCanceled += () => IsHoldShoot = false;
         inputMap.OnSwitchGun += () => SwitchGunNext();
         InitializeGunControllers();

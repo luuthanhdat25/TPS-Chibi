@@ -5,8 +5,9 @@ using UnityEngine.InputSystem;
 public class PlayerInputMap : MonoBehaviour
 {
     public Action OnRoll;
-    public Action OnJump;
-    public Action OnHoldShootPerformed;
+    public Action OnJumpStart;
+    public Action OnJumpCancle;
+    public Action OnHoldShootStart;
     public Action OnHoldShootCanceled;
     public Action OnSwitchGun;
     public Action OnReloadGun;
@@ -27,8 +28,9 @@ public class PlayerInputMap : MonoBehaviour
     private void Start()
     {
         inputMap.Player.Roll.performed += (InputAction.CallbackContext context) => OnRoll?.Invoke();
-        inputMap.Player.Jump.performed += (InputAction.CallbackContext context) => OnJump?.Invoke();
-        inputMap.Player.Shoot.performed += (InputAction.CallbackContext context) => OnHoldShootPerformed?.Invoke();
+        inputMap.Player.Jump.started += (InputAction.CallbackContext context) => OnJumpStart?.Invoke();
+        inputMap.Player.Jump.canceled += (InputAction.CallbackContext context) => OnJumpCancle?.Invoke();
+        inputMap.Player.Shoot.started += (InputAction.CallbackContext context) => OnHoldShootStart?.Invoke();
         inputMap.Player.Shoot.canceled += (InputAction.CallbackContext context) => OnHoldShootCanceled?.Invoke();
         inputMap.Player.SwitchGun.performed += (InputAction.CallbackContext context) => OnSwitchGun?.Invoke();
         inputMap.Player.Reload.performed += (InputAction.CallbackContext context) => OnReloadGun?.Invoke();

@@ -22,6 +22,11 @@ public class PlayerAnimationController : MonoBehaviour
         animator.SetFloat("AttackSpeedMultiplier", value);
     }
 
+    public void SetMoveSpeedMuiltiplier(float value)
+    {
+        animator.SetFloat("MoveSpeedMultiplier", value);
+    }
+
     public void SetIsShooting(bool value)
     {
         animator.SetBool("IsShooting", value);
@@ -44,5 +49,11 @@ public class PlayerAnimationController : MonoBehaviour
     {
         animator.SetFloat("RunBlendX", x);
         animator.SetFloat("RunBlendY", y);
+    }
+
+    public void SetJumpTrigger(float jumpSpeedMultiplier)
+    {
+        animator.SetFloat("JumpSpeedMultiplier", jumpSpeedMultiplier);
+        animator.SetTrigger("JumpTrigger");
     }
 }
