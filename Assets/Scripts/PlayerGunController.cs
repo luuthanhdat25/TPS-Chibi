@@ -2,15 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Windows;
 
 public class PlayerGunController : MonoBehaviour
 {
-    public EventHandler<OnSwitchGunEventArgs> OnSwitchGun;
+    #region Event
+    public EventHandler<OnActiveGunEventArgs> OnActiveGun;
     public EventHandler<OnReloadEventArgs> OnUpdatedReloadTimer;
     public EventHandler<OnUpdatedBulletEventArgs> OnUpdatedBullet;
 
-    public class OnSwitchGunEventArgs : EventArgs
+    public class OnActiveGunEventArgs : EventArgs
     {
         public GunConfig CurrentGunConfig;
         public GunConfig NextGunConfig;
@@ -26,10 +26,12 @@ public class PlayerGunController : MonoBehaviour
         public float CurrentBullet;
         public float TotalBullet;
     }
+    #endregion
 
     [SerializeField] private PlayerAnimationController animationController;
     [SerializeField] private PlayerInputMap inputMap;
     [SerializeField] private List<GunConfig> gunConfigs;
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private Transform gunHoldTransform;
     [SerializeField] private LayerMask canShootLayerMarks;
     [SerializeField] private Transform camTransform;
@@ -41,7 +43,11 @@ public class PlayerGunController : MonoBehaviour
     private float firingTimer;
     private float timeDelayShoot;
     private float attackMultiplier = 1;
-    public bool IsHoldShoot { get; private set; }
+
+    private float switchGunTimer;
+    public bool IsSwitchingGun { get; private set; }
+    
+    public bool IsShootPressed { get; private set; }
     public bool IsShooting { get; private set; }
     private Dictionary<GunConfig, GunController> gunDic = new Dictionary<GunConfig, GunController>();
 
@@ -53,8 +59,8 @@ public class PlayerGunController : MonoBehaviour
         Cursor.visible = false;
 
         inputMap.OnReloadGun += () => Reload();
-        inputMap.OnHoldShootStart += () => IsHoldShoot = true;
-        inputMap.OnHoldShootCanceled += () => IsHoldShoot = false;
+        inputMap.OnHoldShootStart += () => IsShootPressed = true;
+        inputMap.OnHoldShootCanceled += () => IsShootPressed = false;
         inputMap.OnSwitchGun += () => SwitchGunNext();
         InitializeGunControllers();
         ActiveGun(0);
@@ -84,10 +90,10 @@ public class PlayerGunController : MonoBehaviour
         }
 
         //Reset timeDelayShoot
-        timeDelayShoot = FireRateToTimeDelayShoot(CurrentGunConfig().FireRate); 
+        timeDelayShoot = CurrentGunConfig().TimeDelayShoot();
         firingTimer = timeDelayShoot;
 
-        OnSwitchGun?.Invoke(this, new OnSwitchGunEventArgs
+        OnActiveGun?.Invoke(this, new OnActiveGunEventArgs
         {
             CurrentGunConfig = gunConfig,
             NextGunConfig = gunConfigs[(indexSelectGun + 1) % gunConfigs.Count]
@@ -99,13 +105,14 @@ public class PlayerGunController : MonoBehaviour
         });
     }
 
-    private float FireRateToTimeDelayShoot(float fireRate) => 1f / fireRate;
-
     public void SwitchGunNext()
     {
         if (gunConfigs.Count <= 1) return;
 
         indexSelectGun = (indexSelectGun + 1) % gunConfigs.Count;
+
+        IsSwitchingGun = true;
+
         ActiveGun(indexSelectGun);
 
         isReloading = false;
@@ -154,8 +161,13 @@ public class PlayerGunController : MonoBehaviour
     private void FixedUpdate()
     {
         HandleReload();
+        HandleSwitchGun();
 
-        if (IsHoldShoot && !isReloading && !CurrentGunController().IsOutOfAllBullet())
+        if (IsShootPressed 
+            && !isReloading 
+            && !IsSwitchingGun
+            && !CurrentGunController().IsOutOfAllBullet() 
+            && playerController.CanShoot())
         {
             HoldShoot();
             IsShooting = true;
@@ -165,6 +177,18 @@ public class PlayerGunController : MonoBehaviour
             IsShooting = false;
         }
         animationController.SetIsShooting(IsShooting);
+    }
+
+    private void HandleSwitchGun()
+    {
+        if (!IsSwitchingGun) return;
+
+        switchGunTimer += Time.fixedDeltaTime;
+        if(switchGunTimer >= CurrentGunConfig().SwitchGunDuration)
+        {
+            IsSwitchingGun = false;
+            switchGunTimer = 0;
+        }
     }
 
     private void HandleReload()

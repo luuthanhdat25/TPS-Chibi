@@ -20,9 +20,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float maxJumpTime = 1f;
     [SerializeField] private float fallMultiplier = 2f;
     [SerializeField] private AnimationClip jumpAnimClip;
+    [SerializeField] private float groundGravity = 0.5f;
+    [SerializeField] private float threshHoldRotationAllowShoot = 10f;
 
     private float gravity;
-    private float groundedGravity;
     private float initialJumpVelocity;
     private bool isJumpPressed = false;
     private bool isJumping = false;
@@ -32,25 +33,22 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         UpdateMoveSpeed(moveSpeed);
-        input.OnJumpStart += OnJumpStart;
+        input.OnJumpStart += () => isJumpPressed = true;
         input.OnJumpCancle += () => isJumpPressed = false;
 
+        CalculateJumpAndGravity();
+    }
+
+    private void CalculateJumpAndGravity()
+    {
         float timeToApex = maxJumpTime / 2;
         gravity = (-2 * maxJumpHeight) / Mathf.Pow(timeToApex, 2);
         initialJumpVelocity = (2 * maxJumpHeight) / timeToApex;
     }
 
-    private void OnJumpStart()
-    {
-        TriggerJumpAnimation();
-        isJumpPressed = true;
-    }
-
     private void TriggerJumpAnimation()
     {
-        float timeToApex = maxJumpTime;
-        float timeAnimation = jumpAnimClip.length;
-        animationController.SetJumpTrigger(timeAnimation/  timeToApex);
+        animationController.SetJumpTrigger(jumpAnimClip.length / maxJumpTime);
     }
 
     public void UpdateMoveSpeed(float value)
@@ -66,11 +64,11 @@ public class PlayerController : MonoBehaviour
         bool isMove = moveInput.magnitude >= 0.1f;
         Vector3 xzMovement = Vector3.zero;
 
-        if (isMove || playerGunController.IsShooting)
+        if (isMove || playerGunController.IsShootPressed)
         {
             float targetAngle, smoothRotateTime;
 
-            if (playerGunController.IsShooting)
+            if (playerGunController.IsShootPressed)
             {
                 targetAngle = cameraTransform.eulerAngles.y;
                 smoothRotateTime = smoothRotateTimeShoot;
@@ -92,39 +90,41 @@ public class PlayerController : MonoBehaviour
         currentMovement.x = xzMovement.x;
         currentMovement.z = xzMovement.z;
 
-        bool isFalling = currentMovement.y <= 0 || !isJumpPressed;
+        if (IsGround())
+        {
+            currentMovement.y = -groundGravity;
 
-        if (controller.isGrounded)
-        {
-            currentMovement.y = groundedGravity;
-        }
-        else if (isFalling)
-        {
-            float previousYVelocity = currentMovement.y;
-            float newYVelocity = currentMovement.y + (gravity * fallMultiplier * Time.deltaTime);
-            float nextYVelocity = (previousYVelocity + newYVelocity) * .5f;
-            currentMovement.y = nextYVelocity;
+            if (!isJumping && isJumpPressed)
+            {
+                isJumping = true;
+                TriggerJumpAnimation();
+                currentMovement.y = initialJumpVelocity;
+            }
+            else if (!isJumpPressed && isJumping)
+            {
+                isJumping = false;
+            }
         }
         else
         {
+            bool isFalling = currentMovement.y <= 0 || !isJumpPressed;
+            float multiplier = isFalling ? fallMultiplier : 1f;
             float previousYVelocity = currentMovement.y;
-            float newYVelocity = currentMovement.y + (gravity * Time.deltaTime);
+            float newYVelocity = currentMovement.y + (gravity * multiplier * Time.deltaTime);
             float nextYVelocity = (previousYVelocity + newYVelocity) * .5f;
             currentMovement.y = nextYVelocity;
         }
 
-        if (!isJumping && controller.isGrounded && isJumpPressed)
-        {
-            isJumping = true;
-            currentMovement.y = initialJumpVelocity;
-        }
-        else if (!isJumpPressed && isJumping && controller.isGrounded)
-        {
-            isJumping = false;
-        }
-
         controller.Move(currentMovement * Time.deltaTime);
-        animationController.SetIsRunning(isMove && !isJumping);
+        animationController.SetIsRunning(isMove && controller.isGrounded);
         animationController.SetRunBlendXY(moveInput.x, moveInput.y);
+    }
+
+    private bool IsGround() => controller.isGrounded;
+
+    public bool CanShoot()
+    {
+        float rotationDelta = transform.eulerAngles.y - cameraTransform.eulerAngles.y;
+        return Mathf.Abs(rotationDelta) <= threshHoldRotationAllowShoot;
     }
 }

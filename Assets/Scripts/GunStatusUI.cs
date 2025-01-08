@@ -15,7 +15,7 @@ public class GunStatusUI : MonoBehaviour
     private void Awake()
     {
         playerGunController.OnUpdatedReloadTimer += PlayerGunSelector_OnUpdatedReloadTimer;
-        playerGunController.OnSwitchGun += PlayerGunSelector_OnSwitchGun;
+        playerGunController.OnActiveGun += PlayerGunSelector_OnActiveGun;
         playerGunController.OnUpdatedBullet += PlayerGunSelector_OnUpdatedBullet;
         reloadBarGameObject.SetActive(false);
     }
@@ -31,7 +31,7 @@ public class GunStatusUI : MonoBehaviour
         reloadBarGameObject.SetActive(e.ReloadTimerNormalize != 0 && e.ReloadTimerNormalize != 1);
     }
 
-    private void PlayerGunSelector_OnSwitchGun(object sender, PlayerGunController.OnSwitchGunEventArgs e)
+    private void PlayerGunSelector_OnActiveGun(object sender, PlayerGunController.OnActiveGunEventArgs e)
     {
         gunName.text = e.CurrentGunConfig.Name;
         usingGun.sprite = e.CurrentGunConfig.DisplayIcon;
