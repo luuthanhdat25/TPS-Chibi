@@ -21,12 +21,13 @@ MonoBehaviour:
   HandHold: 0
   FireRate: 5
   Damage: 5
-  ReloadDuration: 3
+  ReloadDuration: 1
+  SwitchGunDuration: 1
   NumberBulletShootOneTime: 1
   NumberBulletReload: 30
-  NumberBulletMax: 60
-  BulletSpread: 1
-  BulletSpreadVariance: {x: 0.01, y: 0.02, z: 0.01}
+  NumberBulletMax: 500
+  BulletSpreadConfig:
+    IsSpread: 1
+    BulletSpreadVariance: {x: 0.2, y: 0.3, z: 0.2}
   ShootingParticle: {fileID: 198234346748616026, guid: ad2ab49d0a2a17148bd51c93d977bdbc, type: 3}
   ImpactParticle: {fileID: 5314243490100413185, guid: 16165df7f2e2604408aa11f4ac8e2799, type: 3}
-  BulletTrail: {fileID: 114849538376847805, guid: 3aa26ce83cc03894494deb8f32c2f9a7, type: 3}

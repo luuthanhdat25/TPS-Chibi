@@ -26,13 +26,18 @@ public class GunConfig : ScriptableObject
 
     [Space]
     [Header("Bullet Effect")]
-    public bool BulletSpread = true;
-    public Vector3 BulletSpreadVariance = Vector3.one * 0.1f;
+    public BulletSpreadConfig BulletSpreadConfig;
     public ParticleSystem ShootingParticle;
     public ParticleSystem ImpactParticle;
-    public TrailRenderer BulletTrail;
 
     public float TimeDelayShoot() => 1f / FireRate;
+}
+
+[System.Serializable]
+public struct BulletSpreadConfig
+{
+    public bool IsSpread;
+    public Vector3 BulletSpreadVariance;
 }
 
 public enum HandHold

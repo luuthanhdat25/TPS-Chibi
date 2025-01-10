@@ -19,9 +19,10 @@ MonoBehaviour:
   ShootAnimClip: {fileID: 7400000, guid: c7815796c0403034892dc2141e431e86, type: 3}
   NumberAttackInAnimation: 1
   HandHold: 1
-  FireRate: 0.4
+  FireRate: 0.8
   Damage: 10
   ReloadDuration: 2
+  SwitchGunDuration: 1
   NumberBulletShootOneTime: 1
   NumberBulletReload: 5
   NumberBulletMax: 15
@@ -29,4 +30,3 @@ MonoBehaviour:
   BulletSpreadVariance: {x: 0.1, y: 0.1, z: 0.1}
   ShootingParticle: {fileID: 198234346748616026, guid: ad2ab49d0a2a17148bd51c93d977bdbc, type: 3}
   ImpactParticle: {fileID: 5314243490100413185, guid: 16165df7f2e2604408aa11f4ac8e2799, type: 3}
-  BulletTrail: {fileID: 114849538376847805, guid: 3aa26ce83cc03894494deb8f32c2f9a7, type: 3}

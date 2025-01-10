@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,9 +31,11 @@ public class PlayerGunController : MonoBehaviour
     [SerializeField] private PlayerInputMap inputMap;
     [SerializeField] private List<GunConfig> gunConfigs;
     [SerializeField] private PlayerController playerController;
+    [SerializeField] private PlayerShootRay playerShootRay;
     [SerializeField] private Transform gunHoldTransform;
     [SerializeField] private LayerMask canShootLayerMarks;
     [SerializeField] private Transform camTransform;
+    [SerializeField] private Bullet bulletPrefab;
 
     private bool infiniteBullet;
     private int indexSelectGun;
@@ -43,7 +44,7 @@ public class PlayerGunController : MonoBehaviour
     private float firingTimer;
     private float timeDelayShoot;
     private float attackMultiplier = 1;
-
+    private bool canFire;
     private float switchGunTimer;
     public bool IsSwitchingGun { get; private set; }
     
@@ -92,6 +93,7 @@ public class PlayerGunController : MonoBehaviour
         //Reset timeDelayShoot
         timeDelayShoot = CurrentGunConfig().TimeDelayShoot();
         firingTimer = timeDelayShoot;
+        canFire = false;
 
         OnActiveGun?.Invoke(this, new OnActiveGunEventArgs
         {
@@ -162,6 +164,7 @@ public class PlayerGunController : MonoBehaviour
     {
         HandleReload();
         HandleSwitchGun();
+        HandleFiringTime();
 
         if (IsShootPressed 
             && !isReloading 
@@ -177,6 +180,19 @@ public class PlayerGunController : MonoBehaviour
             IsShooting = false;
         }
         animationController.SetIsShooting(IsShooting);
+    }
+
+    private void HandleFiringTime()
+    {
+        if (canFire) return;
+
+        firingTimer += Time.fixedDeltaTime;
+
+        if (firingTimer >= timeDelayShoot)
+        {
+            canFire = true;
+            firingTimer = 0;
+        }
     }
 
     private void HandleSwitchGun()
@@ -255,12 +271,10 @@ public class PlayerGunController : MonoBehaviour
 
     private bool ShootBullet(Vector3 initalPosition, int numberOfBullet)
     {
-        firingTimer += Time.fixedDeltaTime;
-
-        if (firingTimer >= timeDelayShoot)
+        if (canFire)
         {
             SpawnBullets(initalPosition, numberOfBullet);
-            firingTimer = 0;
+            canFire = false;
             return true;
         }
         return false;
@@ -268,51 +282,21 @@ public class PlayerGunController : MonoBehaviour
 
     private void SpawnBullets(Vector3 initalPosition, int numberOfBullet)
     {
-        Debug.Log($"Shoot " + numberOfBullet + " bullet");
         GunConfig gunConfig = CurrentGunConfig();
-        //Instantiate(gunConfig.ShootingParticle, initalPosition, Quaternion.identity);
-        
-        if (Physics.Raycast(camTransform.position, 
-            GetDirection(camTransform.forward, gunConfig.BulletSpread, gunConfig.BulletSpreadVariance), 
-            out RaycastHit hit, 
-            float.MaxValue, 
-            canShootLayerMarks))
-        {
-            TrailRenderer trail = Instantiate(gunConfig.BulletTrail, initalPosition, Quaternion.identity);
-            StartCoroutine(SpawnTrail(trail, hit, gunConfig.ImpactParticle));
-        }
-    }
 
-    private IEnumerator SpawnTrail(TrailRenderer trail, RaycastHit hit, ParticleSystem impactParticle)
-    {
-        float time = 0;
-        Vector3 startPosition = trail.transform.position;
+        Vector3 endPoint = playerShootRay.GetEndpointSpread(CurrentShootPosition(), gunConfig.BulletSpreadConfig);
+        Action hitCallback = null;
+        var bullet = Instantiate(bulletPrefab, initalPosition, Quaternion.identity);
 
-        while (time < 1)
+        if (playerShootRay.RayCastFromGun)
         {
-            trail.transform.position = Vector3.Lerp(startPosition, hit.point, time);
-            time += Time.fixedDeltaTime / trail.time;
-            yield return null;
+            hitCallback = () => Instantiate(gunConfig.ImpactParticle, endPoint, Quaternion.LookRotation(playerShootRay.RayCastFormGunNormal));
         }
 
-        trail.transform.position = hit.point;
-        Instantiate(impactParticle, hit.point, Quaternion.LookRotation(hit.normal));
-        
-        Destroy(trail.gameObject, trail.time);
+        bullet.Init(initalPosition, endPoint, hitCallback);
     }
 
-    private Vector3 GetDirection(Vector3 initialDirection, bool addBulletSpread, Vector3 spreadVarian)
-    {
-        if (!addBulletSpread) return initialDirection;
-        initialDirection += new Vector3(
-            UnityEngine.Random.Range(-spreadVarian.x, spreadVarian.x),
-            UnityEngine.Random.Range(-spreadVarian.y, spreadVarian.y),
-            UnityEngine.Random.Range(-spreadVarian.z, spreadVarian.z)
-            );
-        return initialDirection;
-    }
-
-    private Vector3 CurrentShootPosition() => CurrentGunController().ShootingPosition();
+    public Vector3 CurrentShootPosition() => CurrentGunController().ShootingPosition();
     private GunController CurrentGunController() => gunDic[CurrentGunConfig()];
     public GunConfig CurrentGunConfig() => gunConfigs[indexSelectGun];
     public HandHold CurrentHandHold() => CurrentGunConfig().HandHold;
