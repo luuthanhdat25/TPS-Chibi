@@ -2,16 +2,21 @@
 
 public class PlayerController : MonoBehaviour
 {
+    [SerializeField] private float xLookMultiplier = 10f;
+    [SerializeField] private float yLookMultiplier = 10f;
+
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 10f;
     [SerializeField] private float baseMoveSpeed = 6f; //base speed for animation
     [SerializeField] private float smoothRotateTimeMove = 0.1f;
     [SerializeField] private float smoothRotateTimeShoot = 0.05f;
+    [SerializeField] private bool isLockCamera;
 
     [Header("References")]
     [SerializeField] private CharacterController controller;
     [SerializeField] private PlayerGunController playerGunController;
     [SerializeField] private Transform cameraTransform;
+    [SerializeField] private Transform cameraRootTransform;
     [SerializeField] private PlayerInputMap input;
     [SerializeField] private PlayerAnimationController animationController;
 
@@ -29,12 +34,17 @@ public class PlayerController : MonoBehaviour
     private bool isJumping = false;
     private Vector3 currentMovement;
     private float turnSmoothVelocity;
+    private Vector3 startEulerRotation;
 
     private void Start()
     {
         UpdateMoveSpeed(moveSpeed);
         input.OnJumpStart += () => isJumpPressed = true;
         input.OnJumpCancle += () => isJumpPressed = false;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        startEulerRotation = transform.eulerAngles;
 
         CalculateJumpAndGravity();
     }
@@ -64,29 +74,45 @@ public class PlayerController : MonoBehaviour
         bool isMove = moveInput.magnitude >= 0.1f;
         Vector3 xzMovement = Vector3.zero;
 
-        if (isMove || playerGunController.IsShootPressed)
-        {
-            float targetAngle, smoothRotateTime;
+        //if (isMove || playerGunController.IsShootPressed)
+        //{
+        //    float targetAngle, smoothRotateTime;
 
-            if (playerGunController.IsShootPressed)
-            {
-                targetAngle = cameraTransform.eulerAngles.y;
-                smoothRotateTime = smoothRotateTimeShoot;
-                xzMovement = cameraTransform.forward * moveInput.y + cameraTransform.right * moveInput.x;
-            }
-            else
-            {
-                targetAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
-                smoothRotateTime = smoothRotateTimeMove;
-                xzMovement = Quaternion.Euler(0, targetAngle, 0) * Vector3.forward;
-            }
+        //    if (playerGunController.IsShootPressed)
+        //    {
+        //        targetAngle = cameraTransform.eulerAngles.y;
+        //        smoothRotateTime = smoothRotateTimeShoot;
+        //        xzMovement = cameraTransform.forward * moveInput.y + cameraTransform.right * moveInput.x;
+        //    }
+        //    else
+        //    {
+        //        targetAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
+        //        smoothRotateTime = smoothRotateTimeMove;
+        //        xzMovement = Quaternion.Euler(0, targetAngle, 0) * Vector3.forward;
+        //    }
 
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothRotateTime);
-            transform.rotation = Quaternion.Euler(0, angle, 0);
+        //    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothRotateTime);
+        //    transform.rotation = Quaternion.Euler(0, angle, 0);
 
-            xzMovement = xzMovement * moveSpeed;
-        }
+        //    xzMovement = xzMovement * moveSpeed;
+        //}
 
+        Vector2 newLookMoveDelta = input.GetLookMoveDelta();
+        float currentXRotation = cameraRootTransform.eulerAngles.x;
+        // Chuyển đổi góc từ [0°, 360°] sang [-180°, 180°]
+        if (currentXRotation > 180f)
+            currentXRotation -= 360f;
+
+        // Áp dụng clamp
+        float clamXCameraRotation = Mathf.Clamp(
+            currentXRotation - (newLookMoveDelta.y * yLookMultiplier * Time.deltaTime),
+            -30f,
+            60f
+        );
+        cameraRootTransform.rotation = Quaternion.Euler(clamXCameraRotation, cameraRootTransform.eulerAngles.y, cameraRootTransform.eulerAngles.z);
+        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y + (newLookMoveDelta.x * xLookMultiplier * Time.deltaTime), 0);
+        xzMovement = transform.forward * moveInput.y + transform.right * moveInput.x;
+        xzMovement = xzMovement * moveSpeed;
         currentMovement.x = xzMovement.x;
         currentMovement.z = xzMovement.z;
 

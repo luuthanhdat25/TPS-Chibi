@@ -56,9 +56,6 @@ public class PlayerGunController : MonoBehaviour
 
     private void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
         inputMap.OnReloadGun += () => Reload();
         inputMap.OnHoldShootStart += () => IsShootPressed = true;
         inputMap.OnHoldShootCanceled += () => IsShootPressed = false;

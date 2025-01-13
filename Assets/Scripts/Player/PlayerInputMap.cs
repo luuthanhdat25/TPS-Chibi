@@ -36,6 +36,11 @@ public class PlayerInputMap : MonoBehaviour
         inputMap.Player.Reload.performed += (InputAction.CallbackContext context) => OnReloadGun?.Invoke();
     }
 
+    public Vector2 GetLookMoveDelta()
+    {
+        return inputMap.Player.Look.ReadValue<Vector2>();
+    }
+
     public Vector2 GetRawInputNormalized()
     {
         Vector2 inputVector = inputMap.Player.Move.ReadValue<Vector2>();
