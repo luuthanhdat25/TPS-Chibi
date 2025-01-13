@@ -1,32 +1,37 @@
 using System;
-using System.Collections;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
     [field: SerializeField] public TrailRenderer Trail { get; private set; }
     [SerializeField] private float velocityValue = 50f;
+    private Vector3 direction;
+    private Action onHitCallback;
+
+    private bool isMoving = false;
 
     public void Init(Vector3 startPoint, Vector3 endPoint, Action callback = null)
     {
-        float distanceTravel = Vector3.Distance(startPoint, endPoint);
-        float timeTravel = distanceTravel / velocityValue;
-        StartCoroutine(MoveToEndPoint(startPoint, endPoint, timeTravel, callback));
+        transform.position = startPoint;
+        direction = (endPoint - startPoint).normalized;
+        onHitCallback = callback;
+        isMoving = true;
     }
 
-    private IEnumerator MoveToEndPoint(Vector3 startPoint, Vector3 endPoint, float timeTravel, Action callback)
+    private void FixedUpdate()
     {
-        float elapsedTime = 0;
-
-        while (elapsedTime < timeTravel)
+        if (isMoving)
         {
-            transform.position = Vector3.Lerp(startPoint, endPoint, elapsedTime / timeTravel);
-            elapsedTime += Time.deltaTime;
-            yield return null;
+            transform.position += direction * velocityValue * Time.fixedDeltaTime;
         }
+    }
 
-        transform.position = endPoint;
-        callback?.Invoke();
+    private void OnTriggerEnter(Collider other)
+    {
+        isMoving = false;
+        onHitCallback?.Invoke();
         Destroy(gameObject);
+
+        Debug.Log("Bullet hit!");
     }
 }

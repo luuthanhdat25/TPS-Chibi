@@ -166,8 +166,7 @@ public class PlayerGunController : MonoBehaviour
         if (IsShootPressed 
             && !isReloading 
             && !IsSwitchingGun
-            && !CurrentGunController().IsOutOfAllBullet() 
-            && playerController.CanShoot())
+            && !CurrentGunController().IsOutOfAllBullet())
         {
             HoldShoot();
             IsShooting = true;

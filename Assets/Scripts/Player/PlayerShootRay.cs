@@ -5,6 +5,9 @@ public class PlayerShootRay : MonoBehaviour
     [field: SerializeField] public float RayDistance = 100f;
     [SerializeField] private Camera mainCamera;
     [SerializeField] private PlayerGunController playerGunController;
+    [SerializeField] private PlayerInputMap playerInputMap;
+    [SerializeField] private Transform aimShootTransform;
+    [SerializeField] private LayerMask canShootMark;
 
     [Header("Shoot error target")]
     [SerializeField] private RectTransform shootErrorIconRect;
@@ -22,6 +25,7 @@ public class PlayerShootRay : MonoBehaviour
     public bool RayCastFromCam { get; private set; }
     public bool RayCastFromGun { get; private set; }
     public Vector3 RayCastFormGunNormal => rayHitFromGun.normal;
+    private bool isHoldShoot = false;
 
 
     private void Awake()
@@ -32,20 +36,29 @@ public class PlayerShootRay : MonoBehaviour
         rayFormGun = new Ray();
     }
 
+    private void Start()
+    {
+        playerInputMap.OnHoldShootStart += () => isHoldShoot = true;
+        playerInputMap.OnHoldShootCanceled += () => isHoldShoot = false;
+    }
+
     private void Update()
     {
-        Vector3 bulletInitalPosition = playerGunController.CurrentShootPosition();
-
         rayFromCam.origin = camTransform.position;
         rayFromCam.direction = camTransform.forward;
-        RayCastFromCam = Physics.Raycast(rayFromCam, out rayHitFromCam, RayDistance);
-
+        RayCastFromCam = Physics.Raycast(rayFromCam, out rayHitFromCam, RayDistance, canShootMark);
         Vector3 maxRayPoint = rayFromCam.GetPoint(RayDistance);
         Vector3 endpointRayCamera = RayCastFromCam ? rayHitFromCam.point : maxRayPoint;
 
+        if (isHoldShoot)  //Player rig aim shoot transform 
+        {
+            aimShootTransform.position = endpointRayCamera;
+        }
+
+        Vector3 bulletInitalPosition = playerGunController.CurrentShootPosition();
         rayFormGun.origin = bulletInitalPosition;
         rayFormGun.direction = endpointRayCamera - bulletInitalPosition;
-        RayCastFromGun = Physics.Raycast(rayFormGun, out rayHitFromGun, RayDistance);
+        RayCastFromGun = Physics.Raycast(rayFormGun, out rayHitFromGun, RayDistance, canShootMark);
 
         endPoint = RayCastFromGun ? rayHitFromGun.point : maxRayPoint;
 
@@ -66,13 +79,14 @@ public class PlayerShootRay : MonoBehaviour
     {
         if (!bulletSpreadConfig.IsSpread) return endPoint;
         Ray rayFromCamSpread = new Ray(GetSpreadDirection(camTransform.position, bulletSpreadConfig), camTransform.forward);
-        bool rayCastFromCam = Physics.Raycast(rayFromCamSpread, out RaycastHit rayHitFromCamSpread, RayDistance);
+        bool rayCastFromCam = Physics.Raycast(rayFromCamSpread, out RaycastHit rayHitFromCamSpread, RayDistance, canShootMark);
 
         Vector3 maxRayPoint = rayFromCamSpread.GetPoint(RayDistance);
         Vector3 endpointRayCamera = rayCastFromCam ? rayHitFromCamSpread.point : maxRayPoint;
+        aimShootTransform.position = endpointRayCamera;
 
         Ray rayFormGunSpread = new Ray(bulletInitalPosition, endpointRayCamera - bulletInitalPosition);
-        bool rayCastFromGunSpread = Physics.Raycast(rayFormGunSpread, out RaycastHit rayHitFromGunSpread, RayDistance);
+        bool rayCastFromGunSpread = Physics.Raycast(rayFormGunSpread, out RaycastHit rayHitFromGunSpread, RayDistance, canShootMark);
 
         return rayCastFromGunSpread ? rayHitFromGunSpread.point : maxRayPoint;
     }
